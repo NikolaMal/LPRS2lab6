@@ -46,9 +46,63 @@ void interrupt_handler(void * baseaddr_p) {
 }
 
 void print(char *str);
+bool stoljpi(){
+	u32 output;
+	    	//postavljanje o_pwr na 0 (citanje okidaca)
 
+	    	bool o_pwr = 0;
+	    	output = ((u32)o_pwr << 2);
+	    	Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
+
+	   		u32 input = Xil_In32(XPAR_MY_PERIPHERAL_0_BASEADDR);
+	   		bool in_btn_0 = input & 0x4;
+	   		bool i_sig;
+
+	   		//zastita za rafal
+	   		while(in_btn_0 == 0x0){
+	   			output = ((u32)in_btn_0 <<1);
+	   			Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
+	   			input = Xil_In32(XPAR_MY_PERIPHERAL_0_BASEADDR);
+	   			in_btn_0 = input & 0x4;
+
+	   		}
+	   		//stoji u while-u dok se ne pritisne okidac
+	   		while(in_btn_0 == 0x1){
+	   			output = ((u32)in_btn_0 << 1);
+	   			Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
+	   			input = Xil_In32(XPAR_MY_PERIPHERAL_0_BASEADDR);
+	   			in_btn_0 = input & 0x4;
+	   		}
+	   		//postavljanje o_pwr na 1 (citanje sa senzora)
+	   		o_pwr = 1;
+
+	   		output = ((u32)o_pwr << 2);
+
+	   		Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
+	   		int i;
+	   		for(i = 0; i < 1000000;i++);
+	   		input = Xil_In32(XPAR_MY_PERIPHERAL_0_BASEADDR);
+	   		i_sig = input & 0x4;
+
+
+
+	   		if(!i_sig){
+	   			printf("belo\n");
+	   		}
+
+	   		output = (((u32)i_sig << 1) | ((u32)o_pwr));
+	   		Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
+
+
+	   		for(i=0;i<5000000;i++);
+
+	   		return i_sig;
+}
 int main()
 {
+	bool sig;
+	int score = 0;
+	char s [6] = "SCORE  ";
     init_platform();
     /*XStatus Status;
 
@@ -63,76 +117,34 @@ int main()
 
     microblaze_enable_interrupts();*/
 
-    /*VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x00, 0x0);// direct mode   0
-       VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x04, 0x3);// display_mode  1
-       VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x08, 0x1);// show frame      2
-       VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x0C, 0x1);// font size       3
-       VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x10, 0xFFFFFF);// foreground 4
-       VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x14, 0x0000FF);// background color 5
-       VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x18, 0xFF0000);// frame color      6
-       VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 4*7, 480);
-       VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 4*8, 1);*/
+    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x00, 0x0);// direct mode   0
+    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x04, 0x3);// display_mode  1
+    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x08, 0x1);// show frame      2
+    //VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x0C, 0x1);// font size       3
+    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x10, 0xFFFFFF);// foreground 4
+    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x14, 0x000000);// background color 5
+    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x18, 0xFF0000);// frame color      6
+    //VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 4*7, 480);
+    //VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 4*8, 1);
+
+
+
 
 
     while(1){
+    	set_cursor(700*26);
+    	s[6] = score + 48;
+    	clear_text_screen(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR);
+    	clear_graphics_screen(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR);
+    	draw_square(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR+0x4);
+    	print_string(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR,s,7);
 
-    	u32 output;
-    	//postavljanje o_pwr na 0 (citanje okidaca)
-
-    	bool o_pwr = 0;
-    	output = ((u32)o_pwr << 2);
-    	Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
-
-   		u32 input = Xil_In32(XPAR_MY_PERIPHERAL_0_BASEADDR);
-   		bool in_btn_0 = input & 0x4;
-   		bool i_sig;
-
-   		//zastita za rafal
-   		while(in_btn_0 == 0x0){
-   			output = ((u32)in_btn_0 <<1);
-   			Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
-   			input = Xil_In32(XPAR_MY_PERIPHERAL_0_BASEADDR);
-   			in_btn_0 = input & 0x4;
-
-   		}
-   		//stoji u while-u dok se ne pritisne okidac
-   		while(in_btn_0 == 0x1){
-   			output = ((u32)in_btn_0 << 1);
-   			Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
-   			input = Xil_In32(XPAR_MY_PERIPHERAL_0_BASEADDR);
-   			in_btn_0 = input & 0x4;
-   		}
-   		//postavljanje o_pwr na 1 (citanje sa senzora)
-   		o_pwr = 1;
-
-   		output = ((u32)o_pwr << 2);
-
-   		Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
-
-   		input = Xil_In32(XPAR_MY_PERIPHERAL_0_BASEADDR);
-   		i_sig = input & 0x4;
-
-   		if(!i_sig){
-   			printf("belo\n");
-   		}
-
-   		output = (((u32)i_sig << 1) | ((u32)o_pwr));
-   		Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
-
-   		int i;
-   		for(i=0;i<5000000;i++);
+    	sig = stoljpi();
+    	if(!sig){
+    		score++;
+    	}
 
 
-
-   		/*bool i_sw_0 = input & 0x1;
-   		   		bool in_btn_0 = input & 0x2;
-   		   		bool i_sig = input & 0x4;
-
-   		   		bool o_led_0 = in_btn_0 && i_sw_0;
-   		   		bool o_led_1 = i_sig;
-   		   		bool o_pwr = in_btn_0 && i_sw_0;
-
-   		   		u32 output = ((u32)o_pwr << 2) | ((u32)o_led_1 << 1) | ((u32)o_led_0 << 0);*/
     }
 
     return 0;
