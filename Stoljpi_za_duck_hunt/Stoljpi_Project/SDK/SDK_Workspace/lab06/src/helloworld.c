@@ -39,6 +39,8 @@
 #include "vga_periph_mem.h"
 #define GPIO_BASEADDR 0x7DE00000
 
+
+
 XIntc Intc;
 
 void interrupt_handler(void * baseaddr_p) {
@@ -47,7 +49,8 @@ void interrupt_handler(void * baseaddr_p) {
 
 void print(char *str);
 bool stoljpi(){
-	u32 output;
+			u32 output;
+			static int j=0;
 	    	//postavljanje o_pwr na 0 (citanje okidaca)
 
 	    	bool o_pwr = 0;
@@ -60,6 +63,12 @@ bool stoljpi(){
 
 	   		//zastita za rafal
 	   		while(in_btn_0 == 0x0){
+	   			draw_square(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR+0x4+j);
+	   			int k;
+	   			for(k=0;k<100000;k++);
+	   			j++;
+	   			if(j>640) j=0;
+
 	   			output = ((u32)in_btn_0 <<1);
 	   			Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
 	   			input = Xil_In32(XPAR_MY_PERIPHERAL_0_BASEADDR);
@@ -68,12 +77,19 @@ bool stoljpi(){
 	   		}
 	   		//stoji u while-u dok se ne pritisne okidac
 	   		while(in_btn_0 == 0x1){
+	   			draw_square(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR+0x4+j);
+	   			int k;
+	   			for(k=0;k<100000;k++);
+	   			j++;
+	   			if(j>640) j=0;
 	   			output = ((u32)in_btn_0 << 1);
 	   			Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
 	   			input = Xil_In32(XPAR_MY_PERIPHERAL_0_BASEADDR);
 	   			in_btn_0 = input & 0x4;
 	   		}
 	   		//postavljanje o_pwr na 1 (citanje sa senzora)
+	   		VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x10, 0xFFFFFF);
+	   		VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x14, 0x000000);
 	   		o_pwr = 1;
 
 	   		output = ((u32)o_pwr << 2);
@@ -94,7 +110,9 @@ bool stoljpi(){
 	   		Xil_Out32(XPAR_MY_PERIPHERAL_0_BASEADDR, output);
 
 
-	   		for(i=0;i<5000000;i++);
+	   		//for(i=0;i<5000000;i++);
+	   		VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x10, 0x6d4c34);
+	   		    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x14, 0x37c916);
 
 	   		return i_sig;
 }
@@ -102,6 +120,7 @@ int main()
 {
 	bool sig;
 	int score = 0;
+	int i=0;
 	char s [6] = "SCORE  ";
     init_platform();
     /*XStatus Status;
@@ -121,8 +140,8 @@ int main()
     VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x04, 0x3);// display_mode  1
     VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x08, 0x1);// show frame      2
     //VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x0C, 0x1);// font size       3
-    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x10, 0xFFFFFF);// foreground 4
-    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x14, 0x000000);// background color 5
+    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x10, 0x6d4c34);// foreground 4
+    VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x14, 0x37c916);// background color 5
     VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 0x18, 0xFF0000);// frame color      6
     //VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 4*7, 480);
     //VGA_PERIPH_MEM_mWriteMemory(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR + 4*8, 1);
@@ -136,7 +155,10 @@ int main()
     	s[6] = score + 48;
     	clear_text_screen(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR);
     	clear_graphics_screen(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR);
-    	draw_square(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR+0x4);
+
+
+
+
     	print_string(XPAR_VGA_PERIPH_MEM_0_S_AXI_MEM0_BASEADDR,s,7);
 
     	sig = stoljpi();
@@ -144,7 +166,7 @@ int main()
     		score++;
     	}
 
-
+    	i++;
     }
 
     return 0;
