@@ -43,9 +43,7 @@
 
 XIntc Intc;
 
-void interrupt_handler(void * baseaddr_p) {
-	xil_printf("\n\rtimer timeout.");
-}
+
 
 void print(char *str);
 bool stoljpi(){
